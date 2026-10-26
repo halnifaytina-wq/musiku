@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>J2 Prime Smart Display & Player</title>
+    <!-- Tambahkan library jsmediatags untuk membaca cover art MP3 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 
@@ -15,7 +17,6 @@
         }
 
         body {
-            /* Background gradasi biru seperti referensi */
             background: linear-gradient(135deg, #4A7BCE 0%, #29509E 100%);
             height: 100vh;
             display: flex;
@@ -41,22 +42,22 @@
             position: relative;
         }
 
-        /* Bagian Kiri: Cover Art */
         .cover-art-container {
             flex: 1;
             height: 100%;
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            background: rgba(0,0,0,0.2);
         }
 
         .cover-art-container img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: opacity 0.5s ease;
         }
 
-        /* Bagian Kanan: Info & Kontrol */
         .info-container {
             flex: 1;
             display: flex;
@@ -71,7 +72,6 @@
             justify-content: flex-end;
         }
 
-        /* Tombol 3 titik untuk memuat lagu lokal */
         .menu-btn {
             background: none;
             border: none;
@@ -115,6 +115,9 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .track-artist {
@@ -123,9 +126,11 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             opacity: 0.7;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* Progress Bar */
         .progress-container {
             display: flex;
             align-items: center;
@@ -153,7 +158,6 @@
             box-shadow: 0 0 5px rgba(0,0,0,0.3);
         }
 
-        /* Kontrol Media */
         .controls {
             display: flex;
             justify-content: space-between;
@@ -186,28 +190,15 @@
             border-radius: 50%;
         }
 
-        svg {
-            width: 24px;
-            height: 24px;
-            fill: currentColor;
-        }
-
-        .btn-play svg {
-            width: 20px;
-            height: 20px;
-            margin-left: 3px; /* visual center fix for play icon */
-        }
-
-        #file-input {
-            display: none;
-        }
+        svg { width: 24px; height: 24px; fill: currentColor; }
+        .btn-play svg { width: 20px; height: 20px; margin-left: 3px; }
+        #file-input { display: none; }
     </style>
 </head>
 <body>
 
     <div class="player-card">
         <div class="cover-art-container">
-            <!-- Gambar cover art default (bisa diganti URL lokal/online) -->
             <img id="cover-image" src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=800&auto=format&fit=crop" alt="Cover Art">
         </div>
 
@@ -235,14 +226,12 @@
                 </div>
 
                 <div class="controls">
-                    <button id="btn-shuffle"><svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg></button>
                     <button id="btn-prev"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
                     <button id="btn-play" class="btn-play">
                         <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                         <svg id="pause-icon" viewBox="0 0 24 24" style="display:none; margin-left:0;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                     </button>
                     <button id="btn-next"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
-                    <button id="btn-loop"><svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
                 </div>
             </div>
         </div>
@@ -277,11 +266,13 @@
         const seekBar = document.getElementById('seek-bar');
         const titleEl = document.getElementById('title');
         const artistEl = document.getElementById('artist');
+        const coverImg = document.getElementById('cover-image');
+        
+        const defaultCover = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=800&auto=format&fit=crop";
 
         let playlist = [];
         let currentTrackIndex = 0;
 
-        // Memuat file dari memori HP
         fileInput.addEventListener('change', function(e) {
             playlist = Array.from(e.target.files);
             if (playlist.length > 0) {
@@ -294,14 +285,41 @@
             const file = playlist[index];
             if (!file) return;
             
-            // Membuat URL sementara untuk memutar file lokal
+            // Set URL Audio
             const objectUrl = URL.createObjectURL(file);
             audio.src = objectUrl;
             
-            // Menampilkan nama file sebagai judul (menghilangkan .mp3)
+            // Tampilkan nama file sebagai fallback
             let fileName = file.name.replace(/\.[^/.]+$/, "");
-            titleEl.textContent = fileName.substring(0, 20) + (fileName.length > 20 ? '...' : '');
-            artistEl.textContent = "LOCAL MUSIC";
+            titleEl.textContent = fileName;
+            artistEl.textContent = "Unknown Artist";
+            coverImg.src = defaultCover;
+
+            // Membaca Metadata MP3 (Cover, Judul, Artis)
+            const jsmediatags = window.jsmediatags;
+            jsmediatags.read(file, {
+                onSuccess: function(tag) {
+                    const tags = tag.tags;
+                    
+                    if (tags.title) titleEl.textContent = tags.title;
+                    if (tags.artist) artistEl.textContent = tags.artist;
+
+                    // Mengambil gambar sampul
+                    if (tags.picture) {
+                        const data = tags.picture.data;
+                        const format = tags.picture.format;
+                        
+                        // Konversi Uint8Array menjadi Blob yang aman untuk memori HP lama
+                        const blob = new Blob([new Uint8Array(data)], { type: format });
+                        const imageUrl = URL.createObjectURL(blob);
+                        
+                        coverImg.src = imageUrl;
+                    }
+                },
+                onError: function(error) {
+                    console.log('Error membaca metadata:', error.type, error.info);
+                }
+            });
             
             audio.play();
             updatePlayButton(true);
@@ -318,7 +336,7 @@
         }
 
         btnPlay.addEventListener('click', () => {
-            if (!audio.src) return; // Jika belum ada lagu yang dimuat
+            if (!audio.src) return;
             if (audio.paused) {
                 audio.play();
                 updatePlayButton(true);
@@ -342,7 +360,6 @@
             }
         });
 
-        // Update progress bar
         audio.addEventListener('timeupdate', () => {
             if (audio.duration) {
                 const progressPercent = (audio.currentTime / audio.duration) * 100;
@@ -350,7 +367,6 @@
             }
         });
 
-        // Seek lagu (geser bar)
         seekBar.addEventListener('input', (e) => {
             if (audio.duration) {
                 const seekTime = (e.target.value / 100) * audio.duration;
@@ -358,7 +374,6 @@
             }
         });
 
-        // Auto next saat lagu habis
         audio.addEventListener('ended', () => {
             btnNext.click();
         });
