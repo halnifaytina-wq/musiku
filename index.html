@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J2 Prime Smart Display & Player</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            /* Background gradasi biru seperti referensi */
+            background: linear-gradient(135deg, #4A7BCE 0%, #29509E 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: white;
+        }
+
+        .player-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            width: 90%;
+            max-width: 800px;
+            height: 85vh;
+            max-height: 450px;
+            display: flex;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        /* Bagian Kiri: Cover Art */
+        .cover-art-container {
+            flex: 1;
+            height: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .cover-art-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Bagian Kanan: Info & Kontrol */
+        .info-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding-left: 40px;
+            position: relative;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Tombol 3 titik untuk memuat lagu lokal */
+        .menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 10px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .menu-btn:hover { opacity: 1; }
+
+        .time-date {
+            text-align: center;
+            margin-top: -20px;
+        }
+
+        .clock {
+            font-size: 5rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -2px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .date {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 8px;
+            opacity: 0.9;
+        }
+
+        .track-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .track-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .track-artist {
+            font-size: 0.8rem;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+
+        /* Kontrol Media */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .controls button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .controls button:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .btn-play {
+            background: white !important;
+            color: #4A7BCE !important;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+        }
+
+        svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .btn-play svg {
+            width: 20px;
+            height: 20px;
+            margin-left: 3px; /* visual center fix for play icon */
+        }
+
+        #file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="player-card">
+        <div class="cover-art-container">
+            <!-- Gambar cover art default (bisa diganti URL lokal/online) -->
+            <img id="cover-image" src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=800&auto=format&fit=crop" alt="Cover Art">
+        </div>
+
+        <div class="info-container">
+            <div class="top-bar">
+                <button class="menu-btn" onclick="document.getElementById('file-input').click()">
+                    <svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                </button>
+                <input type="file" id="file-input" accept="audio/*" multiple>
+            </div>
+
+            <div class="time-date">
+                <div class="clock" id="clock">00:00</div>
+                <div class="date" id="date">01/01/2026</div>
+            </div>
+
+            <div>
+                <div class="track-info">
+                    <div class="track-title" id="title">SO DOES HOPE.</div>
+                    <div class="track-artist" id="artist">WHERE FLOWERS BLOOM,</div>
+                </div>
+
+                <div class="progress-container">
+                    <input type="range" class="progress-bar" id="seek-bar" value="0" max="100">
+                </div>
+
+                <div class="controls">
+                    <button id="btn-shuffle"><svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg></button>
+                    <button id="btn-prev"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+                    <button id="btn-play" class="btn-play">
+                        <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <svg id="pause-icon" viewBox="0 0 24 24" style="display:none; margin-left:0;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    </button>
+                    <button id="btn-next"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+                    <button id="btn-loop"><svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audio-player"></audio>
+
+    <script>
+        // 1. Logika Jam dan Tanggal
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+
+            document.getElementById('clock').textContent = `${hours}:${minutes}`;
+            document.getElementById('date').textContent = `${day}/${month}/${year}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // 2. Logika Audio Player
+        const audio = document.getElementById('audio-player');
+        const fileInput = document.getElementById('file-input');
+        const btnPlay = document.getElementById('btn-play');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        const btnNext = document.getElementById('btn-next');
+        const btnPrev = document.getElementById('btn-prev');
+        const seekBar = document.getElementById('seek-bar');
+        const titleEl = document.getElementById('title');
+        const artistEl = document.getElementById('artist');
+
+        let playlist = [];
+        let currentTrackIndex = 0;
+
+        // Memuat file dari memori HP
+        fileInput.addEventListener('change', function(e) {
+            playlist = Array.from(e.target.files);
+            if (playlist.length > 0) {
+                currentTrackIndex = 0;
+                loadTrack(currentTrackIndex);
+            }
+        });
+
+        function loadTrack(index) {
+            const file = playlist[index];
+            if (!file) return;
+            
+            // Membuat URL sementara untuk memutar file lokal
+            const objectUrl = URL.createObjectURL(file);
+            audio.src = objectUrl;
+            
+            // Menampilkan nama file sebagai judul (menghilangkan .mp3)
+            let fileName = file.name.replace(/\.[^/.]+$/, "");
+            titleEl.textContent = fileName.substring(0, 20) + (fileName.length > 20 ? '...' : '');
+            artistEl.textContent = "LOCAL MUSIC";
+            
+            audio.play();
+            updatePlayButton(true);
+        }
+
+        function updatePlayButton(isPlaying) {
+            if (isPlaying) {
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+            } else {
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+            }
+        }
+
+        btnPlay.addEventListener('click', () => {
+            if (!audio.src) return; // Jika belum ada lagu yang dimuat
+            if (audio.paused) {
+                audio.play();
+                updatePlayButton(true);
+            } else {
+                audio.pause();
+                updatePlayButton(false);
+            }
+        });
+
+        btnNext.addEventListener('click', () => {
+            if (playlist.length > 0) {
+                currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+                loadTrack(currentTrackIndex);
+            }
+        });
+
+        btnPrev.addEventListener('click', () => {
+            if (playlist.length > 0) {
+                currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+                loadTrack(currentTrackIndex);
+            }
+        });
+
+        // Update progress bar
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration) {
+                const progressPercent = (audio.currentTime / audio.duration) * 100;
+                seekBar.value = progressPercent;
+            }
+        });
+
+        // Seek lagu (geser bar)
+        seekBar.addEventListener('input', (e) => {
+            if (audio.duration) {
+                const seekTime = (e.target.value / 100) * audio.duration;
+                audio.currentTime = seekTime;
+            }
+        });
+
+        // Auto next saat lagu habis
+        audio.addEventListener('ended', () => {
+            btnNext.click();
+        });
+    </script>
+</body>
+</html>
